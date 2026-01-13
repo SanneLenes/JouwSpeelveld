@@ -35,7 +35,6 @@
     border:1px solid rgba(255,255,255,.10);
     background:#0e1b33;
     display:block;
-    touch-action:none; /* belangrijk: voorkom scroll/zoom op canvas */
   }
   .panel{
     background:#081124;
@@ -79,31 +78,8 @@
   .danger{background:#7f1d1d;color:#e7eefc}
   .ghost{background:rgba(255,255,255,.08); color:#e7eefc; border:1px solid rgba(255,255,255,.12)}
 
-  /* ---------- Mobiele touch controls ---------- */
-  .touchControls{ display:none; }
-  .touchControls .dpad{
-    display:grid;
-    grid-template-columns:64px 64px 64px;
-    grid-template-rows:64px 64px 64px;
-    gap:10px;
-    justify-content:center;
-  }
-  .touchControls .dpad button{
-    width:64px;
-    height:64px;
-    border-radius:16px;
-    font-size:22px;
-    font-weight:900;
-    touch-action: manipulation;
-  }
-  .touchControls .up{grid-column:2;grid-row:1}
-  .touchControls .left{grid-column:1;grid-row:2}
-  .touchControls .right{grid-column:3;grid-row:2}
-  .touchControls .down{grid-column:2;grid-row:3}
-
   @media (max-width: 980px){
     .wrap{grid-template-columns:1fr}
-    .touchControls{ display:block; }
   }
 </style>
 </head>
@@ -144,19 +120,6 @@
         <button class="ghost" id="nextBtn" style="grid-column:1 / -1; display:none;">Volgende level</button>
       </div>
 
-      <!-- Touch D-pad (alleen zichtbaar op mobiel door CSS) -->
-      <div class="touchControls">
-        <div class="card" style="padding:12px">
-          <div class="row" style="margin-bottom:10px"><span>Mobiele besturing</span><strong>Touch</strong></div>
-          <div class="dpad">
-            <button class="ghost up"    data-key="up">↑</button>
-            <button class="ghost left"  data-key="left">←</button>
-            <button class="ghost right" data-key="right">→</button>
-            <button class="ghost down"  data-key="down">↓</button>
-          </div>
-        </div>
-      </div>
-
       <div class="card" style="color:#a9b7d3;font-size:13px;line-height:1.35">
         <strong style="color:#e7eefc">Storm-effecten</strong><br>
         Bij storm krijg je <strong>winddrift</strong>, <strong>golf-ruis</strong> (koers schommelt) en <strong>minder roer-grip</strong>.<br>
@@ -189,6 +152,7 @@
   const W = cv.width, H = cv.height;
 
   // ---------- Levels ----------
+  // Poorten zijn pairs: a (rood) en b (groen). Je moet er langs in volgorde.
   const levels = [
     {
       name: "Level 1",
@@ -205,10 +169,10 @@
         {x:610,y:250,r:48},
         {x:710,y:140,r:40},
       ],
-      gateTolerance: 22,
-      stormSeverity: 1.0,
-      stormSpeedLimit: 3.2,
-      weatherProfile: { calm:0.10, wind:0.25, storm:0.65 }
+      gateTolerance: 22,           // hoe “breed” de poort-acceptatie is
+      stormSeverity: 1.0,          // multiplier op wind/golf
+      stormSpeedLimit: 3.2,        // boven dit bij storm = fail
+      weatherProfile: { calm:0.10, wind:0.20, storm:0.70 } // kansverdeling
     },
     {
       name: "Level 2",
@@ -270,10 +234,10 @@
   const ship = {
     x: 90,
     y: 260,
-    heading: 0,
-    speed: 0,
+    heading: 0,      // radians
+    speed: 0,        // 0..maxSpeed
     maxSpeed: 4.6,
-    turnRate: 0.055
+    turnRate: 0.055  // base turning
   };
 
   let running = false;
@@ -281,10 +245,12 @@
   let gateIndex = 0;
   let lastTs = 0;
 
+  // Weather: level 0..1, plus storm "feel"
   let weather = {
     level: 0.0,
     target: 0.0,
     t: 0.0,
+    // extra phase for waves
     wavePhase: 0.0
   };
 
@@ -413,6 +379,7 @@
 
   // ---------- Weather ----------
   function pickWeatherTarget(){
+    // pick target based on profile: calm/wind/storm
     const r = Math.random();
     const p = L.weatherProfile;
     if (r < p.calm) return 0.05;
@@ -424,6 +391,7 @@
     weather.t += dt;
     weather.wavePhase += dt * (1.4 + 2.0*weather.level);
 
+    // Every ~9–13 sec choose new state
     if (weather.t > 3 + Math.random()*1.5){
       weather.t = 0;
       weather.target = pickWeatherTarget();
@@ -437,7 +405,8 @@
       }
     }
 
-    const k = 0.6;
+    // Smooth
+    const k = 0.35;
     weather.level += (weather.target - weather.level) * (1 - Math.exp(-k*dt));
   }
 
@@ -475,6 +444,7 @@
       return true;
     }
 
+    // Storm speed limit
     if (weather.level > 0.6 && ship.speed > L.stormSpeedLimit){
       fail(`🌩 Te hard gevaren tijdens storm. Schip beschadigd. Houd snelheid ≤ ${L.stormSpeedLimit.toFixed(1)} bij storm.`);
       return true;
@@ -489,31 +459,42 @@
 
     updateWeather(dt);
 
+    // --- Controls: speed
     if (keys.up) ship.speed = Math.min(ship.maxSpeed, ship.speed + 2.1*dt);
     if (keys.down) ship.speed = Math.max(0, ship.speed - 3.0*dt);
 
-    const storm = weather.level;
+    // --- Storm handling that you FEEL:
+    // 1) Wind drift grows strongly with storm
+    // 2) Waves push heading (oscillation) -> "course wobble"
+    // 3) Rudder effectiveness drops in storm -> you turn less per keypress
+    const storm = weather.level;          // 0..1
     const sev = L.stormSeverity;
 
-    const drift = (10 + 35*storm) * sev;
+    // wind vector (right + slightly up), scaled
+    const drift = (10 + 35*storm) * sev;   // px/sec
     const windX = 0.75 * drift;
     const windY = -0.35 * drift;
 
+    // wave yaw: pushes heading back/forth (stronger in storm, and more when speed is high)
     const wave = Math.sin(weather.wavePhase * 2.2) * (0.010 + 0.020*storm) * (0.6 + 0.6*(ship.speed/ship.maxSpeed)) * sev;
     ship.heading += wave;
 
+    // rudder grip: reduce turning in storm, especially at higher speed (slip)
     const grip = Math.max(0.45, 1.0 - 0.55*storm - 0.15*(ship.speed/ship.maxSpeed));
     const turn = ship.turnRate * grip;
 
     if (keys.left) ship.heading -= turn;
     if (keys.right) ship.heading += turn;
 
+    // Movement (60 multiplier makes “units” feel nicer)
     ship.x += Math.cos(ship.heading) * ship.speed * 60 * dt + windX * dt;
     ship.y += Math.sin(ship.heading) * ship.speed * 60 * dt + windY * dt;
 
+    // Keep inside map
     ship.x = Math.max(20, Math.min(W-20, ship.x));
     ship.y = Math.max(20, Math.min(H-20, ship.y));
 
+    // Gate logic
     if (gateIndex < L.gates.length){
       if (passedGate(gateIndex)){
         gateIndex++;
@@ -529,6 +510,7 @@
 
     if (damageCheck()) return;
 
+    // Harbour rules
     if (reachedHarbour()){
       if (gateIndex < L.gates.length){
         fail("❌ Je ging de haven in zonder alle poorten te halen. Volg eerst de vaargeul (alle poorten).");
@@ -538,6 +520,7 @@
       return;
     }
 
+    // If way off course late in level
     if (ship.x > W-55 && gateIndex < L.gates.length){
       fail("❌ Je bent uit de vaargeul geraakt. Probeer de poorten te volgen (in volgorde).");
       return;
@@ -561,6 +544,7 @@
     ctx.fillStyle = "#0e1b33";
     ctx.fillRect(0,0,W,H);
 
+    // depth shading grid: lighter = shallow
     const cell = 24;
     for (let y=0; y<H; y+=cell){
       for (let x=0; x<W; x+=cell){
@@ -572,12 +556,14 @@
       }
     }
 
+    // storm overlay
     if (weather.level > 0.35){
       const a = 0.10 + 0.14*(weather.level-0.35)/0.65;
       ctx.fillStyle = `rgba(148,163,184,${a})`;
       for (let i=0;i<36;i++){
         ctx.fillRect(0, i*16, W, 4);
       }
+      // rain streaks (more when storm)
       ctx.strokeStyle = `rgba(226,232,240,${0.06 + 0.18*weather.level})`;
       for (let i=0;i<70 + Math.floor(70*weather.level); i++){
         const rx = (Math.random()*W)|0;
@@ -589,6 +575,7 @@
       }
     }
 
+    // sandbanks
     for (const s of L.sandbanks){
       ctx.fillStyle = "rgba(194,178,128,.95)";
       ctx.beginPath();
@@ -652,11 +639,13 @@
     ctx.translate(ship.x, ship.y);
     ctx.rotate(ship.heading);
 
+    // wake
     ctx.fillStyle = "rgba(191,219,254,.14)";
     ctx.beginPath();
     ctx.ellipse(-28, 0, 22, 10, 0, 0, Math.PI*2);
     ctx.fill();
 
+    // hull
     ctx.fillStyle = "rgba(96,165,250,.95)";
     ctx.beginPath();
     ctx.moveTo(26,0);
@@ -666,9 +655,11 @@
     ctx.closePath();
     ctx.fill();
 
+    // cabin
     ctx.fillStyle = "rgba(226,232,240,.85)";
     ctx.fillRect(-10,-6,14,12);
 
+    // outline
     ctx.strokeStyle = "rgba(15,23,42,.35)";
     ctx.beginPath();
     ctx.moveTo(26,0);
@@ -722,7 +713,6 @@
     }
   }
 
-  // Keyboard
   window.addEventListener("keydown", (e) => {
     if (e.key === "ArrowLeft") { keys.left = true; e.preventDefault(); }
     if (e.key === "ArrowRight"){ keys.right = true; e.preventDefault(); }
@@ -738,25 +728,6 @@
     if (e.key === "ArrowDown") keys.down = false;
   });
 
-  // Touch D-pad (mobile)
-  function setKey(name, isDown){ keys[name] = isDown; }
-
-  document.querySelectorAll("[data-key]").forEach(btn => {
-    const k = btn.dataset.key;
-
-    const down = (e) => { e.preventDefault(); setKey(k, true); };
-    const up   = (e) => { e.preventDefault(); setKey(k, false); };
-
-    btn.addEventListener("pointerdown", down, {passive:false});
-    btn.addEventListener("pointerup", up, {passive:false});
-    btn.addEventListener("pointercancel", up, {passive:false});
-    btn.addEventListener("pointerleave", up, {passive:false});
-  });
-
-  window.addEventListener("blur", () => {
-    keys.left = keys.right = keys.up = keys.down = false;
-  });
-
   startBtn.addEventListener("click", () => {
     if (running) return;
     running = true;
@@ -769,6 +740,7 @@
   });
 
   restartBtn.addEventListener("click", () => {
+    // restart same level
     loadLevel(levelIndex);
     running = true;
     ship.speed = 1.6;
