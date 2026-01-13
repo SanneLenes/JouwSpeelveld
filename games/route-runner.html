@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Route Runner — ICT & Logica (Lite)</title>
+  <style>
+    :root{
+      --bg:#0b1220; --text:#e7eefc; --muted:#a9b7d3; --accent:#60a5fa;
+      --good:#22c55e; --warn:#f59e0b; --bad:#ef4444;
+      --tile:#1a2742; --tile2:#15223b; --grid:#0e172b;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 600px at 20% 0%, #13244a 0%, var(--bg) 55%);
+      color:var(--text); min-height:100vh; display:flex; justify-content:center; align-items:center; padding:24px;
+    }
+    .app{width:min(1050px,100%); display:grid; gap:16px;}
+    header{display:flex; align-items:flex-end; justify-content:space-between; gap:12px;}
+    h1{margin:0; font-size:28px;}
+    .sub{color:var(--muted); font-size:14px; margin-top:6px; max-width:70ch; line-height:1.45;}
+    .badge{
+      background: linear-gradient(180deg, #1f2b46, #121b2e);
+      border:1px solid rgba(255,255,255,.08); padding:10px 12px; border-radius:12px;
+      font-size:13px; color:var(--muted); display:flex; gap:10px; align-items:center; white-space:nowrap;
+    }
+    .badge strong{color:var(--text)}
+    .grid{display:grid; grid-template-columns:1.25fr .75fr; gap:16px;}
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.09); border-radius:18px; overflow:hidden;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+    .hd{padding:14px 16px; background:rgba(0,0,0,.12); border-bottom:1px solid rgba(255,255,255,.06);
+      display:flex; align-items:center; justify-content:space-between; gap:12px;}
+    .title{font-weight:900}
+    .bd{padding:16px}
+    .boardWrap{display:grid; grid-template-columns:1fr 320px; gap:14px; align-items:start;}
+    .board{
+      background:rgba(0,0,0,.15); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px;
+    }
+    .boardTop{display:flex; justify-content:space-between; gap:10px; margin-bottom:10px; color:var(--muted); font-size:13px;}
+    canvas{width:100%; height:auto; display:block; border-radius:12px; border:1px solid rgba(255,255,255,.06);
+      background: linear-gradient(180deg, rgba(15,23,42,.7), rgba(10,16,30,.7));}
+    .panel{background:rgba(0,0,0,.14); border:1px solid rgba(255,255,255,.08); border-radius:16px; padding:12px;}
+    .panel h3{margin:0 0 8px 0; font-size:14px;}
+    .btnRow{display:grid; gap:10px; margin-top:8px;}
+    button{
+      cursor:pointer; border:none; border-radius:12px; padding:10px 12px; font-weight:900;
+      color:#081022; background:var(--accent); box-shadow:0 8px 20px rgba(96,165,250,.25);
+    }
+    button.secondary{
+      background: rgba(255,255,255,.10); color:var(--text); border:1px solid rgba(255,255,255,.12); box-shadow:none;
+    }
+    button.danger{
+      background: rgba(239,68,68,.12); color:var(--text); border:1px solid rgba(239,68,68,.25); box-shadow:none;
+    }
+    button:disabled{opacity:.55; cursor:not-allowed}
+    .tokens{
+      display:flex; flex-wrap:wrap; gap:8px; min-height:40px; padding:10px;
+      background: rgba(0,0,0,.12); border:1px solid rgba(255,255,255,.06); border-radius:12px;
+    }
+    .token{
+      padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.07); font-weight:800; font-size:12px; user-select:none;
+    }
+    .msg{
+      margin-top:10px; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.14); color:var(--muted); min-height:44px; display:flex; align-items:center; line-height:1.35;
+    }
+    .side{display:grid; gap:16px;}
+    .statGrid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+    .stat{background:rgba(0,0,0,.12); border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:12px;}
+    .stat .k{color:var(--muted); font-size:12px}
+    .stat .v{margin-top:6px; font-size:18px; font-weight:900}
+    .hint{color:var(--muted); font-size:13px; line-height:1.45}
+    .tiny{font-size:12px; color:var(--muted)}
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr} .boardWrap{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>Route Runner</h1>
+      <div class="sub">
+        Maak een route met drie commando’s: <strong>Vooruit</strong>, <strong>Linksaf</strong>, <strong>Rechtsaf</strong>.
+        Druk op <strong>Test</strong> en debug totdat je de vlag haalt.
+      </div>
+    </div>
+    <div class="badge">
+      <span>Level:</span> <strong id="level">1</strong>
+      <span>•</span>
+      <span>Doel:</span> <strong>Vlag</strong>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="card">
+      <div class="hd"><div class="title">Werkveld</div><div class="tiny">±2–3 min • Trial & error</div></div>
+      <div class="bd">
+        <div class="boardWrap">
+          <div class="board">
+            <div class="boardTop">
+              <div>Start: <strong id="startPos"></strong></div>
+              <div>Richting: <strong id="dir"></strong></div>
+            </div>
+            <canvas id="cv" width="640" height="480"></canvas>
+            <div class="msg" id="msg">Klik commando’s, druk op <strong style="margin-left:6px;color:var(--text)">Test</strong>.</div>
+          </div>
+
+          <div class="panel">
+            <h3>Commando’s</h3>
+            <div class="btnRow">
+              <button class="secondary" id="addF">Vooruit</button>
+              <button class="secondary" id="addL">Linksaf</button>
+              <button class="secondary" id="addR">Rechtsaf</button>
+            </div>
+
+            <div style="margin-top:12px">
+              <h3>Jouw programma</h3>
+              <div class="tokens" id="tokens"></div>
+              <div class="btnRow" style="margin-top:10px">
+                <button id="testBtn">Test</button>
+                <button class="secondary" id="stepBtn">Stap</button>
+                <button class="danger" id="undoBtn">Undo</button>
+                <button class="secondary" id="resetBtn">Reset</button>
+                <button id="nextBtn" disabled>Volgende level</button>
+              </div>
+            </div>
+
+            <div class="tiny" style="margin-top:10px">
+              Tip: gebruik <strong>Stap</strong> om te zien waar het misgaat.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <section class="card">
+        <div class="hd"><div class="title">Waarom dit ICT & Logica is</div></div>
+        <div class="bd">
+          <div class="hint">
+            Je zet instructies in volgorde, test, en past aan. Dat is algoritmisch denken en debuggen in mini-formaat.
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="hd"><div class="title">Voortgang</div></div>
+        <div class="bd">
+          <div class="statGrid">
+            <div class="stat"><div class="k">Levels gehaald</div><div class="v" id="cleared">0</div></div>
+            <div class="stat"><div class="k">Aantal tests</div><div class="v" id="tests">0</div></div>
+            <div class="stat"><div class="k">Botsingen</div><div class="v" id="crashes">0</div></div>
+            <div class="stat"><div class="k">Status</div><div class="v" id="status">Bezig</div></div>
+          </div>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<script>
+(() => {
+  const levels = [
+    { w:10, h:8, grid:[
+      "..........",
+      "..~~..^^..",
+      "..~~......",
+      "..^^...~~.",
+      "....S..~~.",
+      "..^^......",
+      "......^^F.",
+      "..........",
+    ], startDir:"E" },
+    { w:10, h:8, grid:[
+      "....^^....",
+      "..~~..~~..",
+      "..~~..~~..",
+      "..^^..^^..",
+      "S.....~~F.",
+      "..^^..~~..",
+      "..~~......",
+      "....^^....",
+    ], startDir:"E" },
+    { w:10, h:8, grid:[
+      "....~~....",
+      "..^^..^^..",
+      "..^^..^^..",
+      "..~~..~~..",
+      "S..^^....F",
+      "..~~..^^..",
+      "..~~..^^..",
+      "....~~....",
+    ], startDir:"E" }
+  ];
+
+  const cv = document.getElementById("cv");
+  const ctx = cv.getContext("2d");
+  const tokensEl = document.getElementById("tokens");
+  const msgEl = document.getElementById("msg");
+  const levelEl = document.getElementById("level");
+  const startPosEl = document.getElementById("startPos");
+  const dirEl = document.getElementById("dir");
+
+  const addF = document.getElementById("addF");
+  const addL = document.getElementById("addL");
+  const addR = document.getElementById("addR");
+  const testBtn = document.getElementById("testBtn");
+  const stepBtn = document.getElementById("stepBtn");
+  const undoBtn = document.getElementById("undoBtn");
+  const resetBtn = document.getElementById("resetBtn");
+  const nextBtn = document.getElementById("nextBtn");
+
+  const clearedEl = document.getElementById("cleared");
+  const testsEl = document.getElementById("tests");
+  const crashesEl = document.getElementById("crashes");
+  const statusEl = document.getElementById("status");
+
+  const DIRS = ["N","E","S","W"];
+  const DIRNAME = {N:"Noord", E:"Oost", S:"Zuid", W:"West"};
+  const tileSize = 48;
+
+  let levelIdx = 0;
+  let program = []; // "F","L","R"
+  let tests = 0, crashes = 0, cleared = 0;
+
+  let board, start, finish, pos, dir;
+  let stepQueue = [];
+
+  function setMessage(html, tone="neutral"){
+    msgEl.innerHTML = html;
+    msgEl.style.borderColor = "rgba(255,255,255,.08)";
+    msgEl.style.background = "rgba(0,0,0,.14)";
+    if (tone === "good"){
+      msgEl.style.borderColor = "rgba(34,197,94,.35)";
+      msgEl.style.background = "rgba(34,197,94,.08)";
+    } else if (tone === "warn"){
+      msgEl.style.borderColor = "rgba(245,158,11,.35)";
+      msgEl.style.background = "rgba(245,158,11,.08)";
+    } else if (tone === "bad"){
+      msgEl.style.borderColor = "rgba(239,68,68,.35)";
+      msgEl.style.background = "rgba(239,68,68,.08)";
+    }
+  }
+
+  function parseLevel(lv){
+    const out = [];
+    let s=null, f=null;
+    for (let y=0; y<lv.h; y++){
+      out[y] = [];
+      for (let x=0; x<lv.w; x++){
+        const ch = lv.grid[y][x];
+        if (ch==="S") s = {x,y};
+        if (ch==="F") f = {x,y};
+        out[y][x] = ch;
+      }
+    }
+    return {out, s, f};
+  }
+
+  function renderTokens(){
+    tokensEl.innerHTML = "";
+    if (program.length === 0){
+      const empty = document.createElement("div");
+      empty.className = "tiny";
+      empty.textContent = "Nog geen commando’s. Klik op Vooruit/Linksaf/Rechtsaf.";
+      tokensEl.appendChild(empty);
+      return;
+    }
+    program.forEach((t, idx) => {
+      const el = document.createElement("div");
+      el.className = "token";
+      el.textContent = t==="F" ? "Vooruit" : (t==="L" ? "Linksaf" : "Rechtsaf");
+      el.title = "Klik om te verwijderen";
+      el.addEventListener("click", () => { program.splice(idx,1); renderTokens(); });
+      tokensEl.appendChild(el);
+    });
+  }
+
+  function expandProgram(){ return [...program]; }
+
+  function turnLeft(d){ return DIRS[(DIRS.indexOf(d)+3)%4]; }
+  function turnRight(d){ return DIRS[(DIRS.indexOf(d)+1)%4]; }
+  function forward(p, d){
+    const np = {x:p.x, y:p.y};
+    if (d==="N") np.y--;
+    if (d==="S") np.y++;
+    if (d==="E") np.x++;
+    if (d==="W") np.x--;
+    return np;
+  }
+  function inBounds(p){
+    const lv = levels[levelIdx];
+    return p.x>=0 && p.y>=0 && p.x<lv.w && p.y<lv.h;
+  }
+  function cellAt(p){
+    if (!inBounds(p)) return "^";
+    return board[p.y][p.x];
+  }
+  function isBlocked(ch){ return ch==="~" || ch==="^"; }
+
+  function resetToStartOnly(){
+    const lv = levels[levelIdx];
+    pos = {x:start.x, y:start.y};
+    dir = lv.startDir;
+    stepQueue = [];
+    dirEl.textContent = DIRNAME[dir];
+  }
+
+  function resetRunner(){
+    const lv = levels[levelIdx];
+    const parsed = parseLevel(lv);
+    board = parsed.out; start = parsed.s; finish = parsed.f;
+    pos = {x:start.x, y:start.y}; dir = lv.startDir;
+    stepQueue = [];
+    nextBtn.disabled = true;
+
+    levelEl.textContent = (levelIdx+1);
+    startPosEl.textContent = `(${start.x+1}, ${start.y+1})`;
+    dirEl.textContent = DIRNAME[dir];
+
+    draw();
+    renderTokens();
+    setMessage(`Bouw je route en test. Gebruik <strong style="color:var(--text)">Stap</strong> om te debuggen.`, "neutral");
+    statusEl.textContent = "Bezig";
+  }
+
+  function stepOnce(){
+    if (stepQueue.length === 0){
+      stepQueue = expandProgram();
+      if (stepQueue.length === 0){
+        setMessage("Voeg eerst commando’s toe.", "warn");
+        return {done:true};
+      }
+    }
+    const cmd = stepQueue.shift();
+
+    if (cmd === "L") dir = turnLeft(dir);
+    if (cmd === "R") dir = turnRight(dir);
+    if (cmd === "F"){
+      const np = forward(pos, dir);
+      const ch = cellAt(np);
+      if (isBlocked(ch)){
+        crashes++; crashesEl.textContent = crashes;
+        setMessage("💥 Botsing. Debug: verander je commando’s en probeer opnieuw.", "bad");
+        resetToStartOnly(); draw();
+        return {crash:true};
+      } else pos = np;
+    }
+
+    dirEl.textContent = DIRNAME[dir];
+    draw();
+
+    if (pos.x === finish.x && pos.y === finish.y){
+      setMessage("✅ Gelukt! Je route klopt. Lekker bezig.", "good");
+      nextBtn.disabled = false;
+      statusEl.textContent = "Level gehaald";
+      stepQueue = [];
+      return {win:true};
+    }
+    return {ok:true};
+  }
+
+  async function testRun(){
+    tests++; testsEl.textContent = tests;
+    nextBtn.disabled = true;
+
+    const seq = expandProgram();
+    if (seq.length === 0){
+      setMessage("Voeg eerst commando’s toe.", "warn");
+      return;
+    }
+
+    resetToStartOnly(); draw();
+
+    for (let i=0; i<seq.length; i++){
+      const cmd = seq[i];
+      if (cmd === "L") dir = turnLeft(dir);
+      if (cmd === "R") dir = turnRight(dir);
+      if (cmd === "F"){
+        const np = forward(pos, dir);
+        const ch = cellAt(np);
+        if (isBlocked(ch)){
+          crashes++; crashesEl.textContent = crashes;
+          draw();
+          setMessage("💥 Botsing. Dat is niet erg — nu debuggen: pas je route aan.", "bad");
+          resetToStartOnly(); draw();
+          return;
+        }
+        pos = np;
+      }
+      dirEl.textContent = DIRNAME[dir];
+      draw();
+      await new Promise(res => setTimeout(res, 220));
+      if (pos.x === finish.x && pos.y === finish.y){
+        setMessage("✅ Gelukt! Je denkt precies als een programmeur: plannen → testen → fixen.", "good");
+        nextBtn.disabled = false;
+        statusEl.textContent = "Level gehaald";
+        return;
+      }
+    }
+    setMessage("Nog niet bij de vlag. Tip: voeg stappen toe of draai eerder/later.", "warn");
+  }
+
+  function draw(){
+    const lv = levels[levelIdx];
+    const W = lv.w * tileSize, H = lv.h * tileSize;
+    if (cv.width !== W) cv.width = W;
+    if (cv.height !== H) cv.height = H;
+
+    ctx.clearRect(0,0,cv.width,cv.height);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--grid').trim();
+    ctx.fillRect(0,0,cv.width,cv.height);
+
+    for (let y=0; y<lv.h; y++){
+      for (let x=0; x<lv.w; x++){
+        const ch = board[y][x];
+        const px = x*tileSize, py=y*tileSize;
+
+        ctx.fillStyle = ((x+y)%2===0)
+          ? getComputedStyle(document.documentElement).getPropertyValue('--tile').trim()
+          : getComputedStyle(document.documentElement).getPropertyValue('--tile2').trim();
+        ctx.fillRect(px,py,tileSize,tileSize);
+
+        if (ch==="~"){
+          ctx.fillStyle = "rgba(59,130,246,.45)";
+          ctx.fillRect(px+4,py+4,tileSize-8,tileSize-8);
+          ctx.fillStyle = "rgba(191,219,254,.35)";
+          ctx.fillRect(px+10,py+16,tileSize-20,6);
+          ctx.fillRect(px+14,py+28,tileSize-28,6);
+        }
+        if (ch==="^"){
+          ctx.fillStyle = "rgba(148,163,184,.45)";
+          ctx.beginPath();
+          ctx.moveTo(px+10,py+34);
+          ctx.lineTo(px+22,py+12);
+          ctx.lineTo(px+40,py+26);
+          ctx.lineTo(px+30,py+42);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = "rgba(226,232,240,.35)";
+          ctx.fillRect(px+22,py+22,12,6);
+        }
+
+        ctx.strokeStyle = "rgba(255,255,255,.06)";
+        ctx.strokeRect(px,py,tileSize,tileSize);
+      }
+    }
+
+    // finish flag
+    const fx=finish.x*tileSize, fy=finish.y*tileSize;
+    ctx.fillStyle = "rgba(34,197,94,.15)";
+    ctx.fillRect(fx+6,fy+6,tileSize-12,tileSize-12);
+    ctx.strokeStyle = "rgba(34,197,94,.55)";
+    ctx.beginPath(); ctx.moveTo(fx+20,fy+12); ctx.lineTo(fx+20,fy+38); ctx.stroke();
+    ctx.fillStyle = "rgba(34,197,94,.85)";
+    ctx.beginPath(); ctx.moveTo(fx+20,fy+14); ctx.lineTo(fx+38,fy+18); ctx.lineTo(fx+20,fy+24); ctx.closePath(); ctx.fill();
+
+    // start marker
+    const sx=start.x*tileSize, sy=start.y*tileSize;
+    ctx.fillStyle = "rgba(96,165,250,.18)";
+    ctx.fillRect(sx+6,sy+6,tileSize-12,tileSize-12);
+    ctx.fillStyle = "rgba(96,165,250,.85)";
+    ctx.font = "bold 14px system-ui";
+    ctx.fillText("START", sx+10, sy+28);
+
+    // runner
+    const cx = pos.x*tileSize + tileSize/2;
+    const cy = pos.y*tileSize + tileSize/2;
+    ctx.fillStyle = "rgba(226,232,240,.9)";
+    ctx.beginPath(); ctx.arc(cx,cy,16,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = "rgba(15,23,42,.9)";
+    ctx.beginPath(); ctx.arc(cx,cy,10,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle = "rgba(96,165,250,.9)";
+    ctx.lineWidth = 3;
+    let dx=0, dy=0;
+    if (dir==="N") dy=-18;
+    if (dir==="S") dy=18;
+    if (dir==="E") dx=18;
+    if (dir==="W") dx=-18;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+dx,cy+dy); ctx.stroke();
+    ctx.lineWidth = 1;
+  }
+
+  // UI
+  addF.addEventListener("click", () => { program.push("F"); renderTokens(); });
+  addL.addEventListener("click", () => { program.push("L"); renderTokens(); });
+  addR.addEventListener("click", () => { program.push("R"); renderTokens(); });
+
+  undoBtn.addEventListener("click", () => { program.pop(); renderTokens(); });
+  resetBtn.addEventListener("click", () => { program = []; renderTokens(); resetRunner(); });
+
+  stepBtn.addEventListener("click", stepOnce);
+  testBtn.addEventListener("click", testRun);
+
+  nextBtn.addEventListener("click", () => {
+    cleared++; clearedEl.textContent = cleared;
+    if (levelIdx < levels.length-1){
+      levelIdx++;
+      program = [];
+      renderTokens();
+      resetRunner();
+      setMessage("Nieuw level! Zelfde idee: route plannen → testen → bijstellen.", "neutral");
+    } else {
+      statusEl.textContent = "Klaar 🎉";
+      nextBtn.disabled = true;
+      setMessage("🎉 Alle levels gehaald. Dat is programmeren: stapjes, logica, debuggen.", "good");
+    }
+  });
+
+  // init
+  clearedEl.textContent = cleared;
+  testsEl.textContent = tests;
+  crashesEl.textContent = crashes;
+  resetRunner();
+})();
+</script>
+</body>
+</html>

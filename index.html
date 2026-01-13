@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <title>Ontdek jouw speelveld</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body{
+      margin:0;
+      font-family: system-ui, sans-serif;
+      background: #0b1220;
+      color: #e7eefc;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .app{
+      width:100%;
+      max-width:900px;
+      padding:40px;
+      text-align:center;
+    }
+    h1{
+      font-size:42px;
+      margin-bottom:10px;
+    }
+    p{
+      color:#a9b7d3;
+      margin-bottom:40px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap:20px;
+    }
+    a{
+      display:block;
+      padding:30px 20px;
+      border-radius:16px;
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.12);
+      text-decoration:none;
+      color:#e7eefc;
+      font-weight:700;
+      transition:.2s;
+    }
+    a:hover{
+      transform: translateY(-4px);
+      background: linear-gradient(180deg, rgba(96,165,250,.25), rgba(96,165,250,.08));
+    }
+    .tag{
+      display:block;
+      margin-top:8px;
+      font-weight:400;
+      color:#a9b7d3;
+      font-size:14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Ontdek jouw speelveld</h1>
+    <p>Ervaar via korte minigames hoe het is om te werken in verschillende STEM-richtingen.</p>
+
+    <div class="grid">
+      <a href="games/colour-lab.html">
+        Techniek & Natuur
+        <span class="tag">Colour Lab</span>
+      </a>
+
+      <a href="games/route-runner.html">
+        ICT & Logica
+        <span class="tag">Route Runner</span>
+      </a>
+
+      <a href="games/bridge-builder.html">
+        Techniek (algemeen)
+        <span class="tag">Bridge Builder</span>
+      </a>
+
+      <a href="games/sea-navigator.html">
+        Maritiem
+        <span class="tag">Sea Navigator</span>
+      </a>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Colour Lab — Techniek & Natuur</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#111b2e;
+      --panel2:#0f172a;
+      --text:#e7eefc;
+      --muted:#a9b7d3;
+      --good:#22c55e;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+      --accent:#60a5fa;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 600px at 20% 0%, #13244a 0%, var(--bg) 55%);
+      color:var(--text);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .app{
+      width:min(980px, 100%);
+      display:grid;
+      gap:16px;
+    }
+    header{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:12px;
+    }
+    h1{
+      margin:0;
+      font-size:28px;
+      letter-spacing:.2px;
+    }
+    .sub{
+      color:var(--muted);
+      font-size:14px;
+      margin-top:6px;
+      max-width:60ch;
+    }
+    .badge{
+      background: linear-gradient(180deg, #1f2b46, #121b2e);
+      border:1px solid rgba(255,255,255,.08);
+      padding:10px 12px;
+      border-radius:12px;
+      font-size:13px;
+      color:var(--muted);
+      display:flex;
+      gap:10px;
+      align-items:center;
+      white-space:nowrap;
+    }
+    .badge strong{color:var(--text)}
+    .grid{
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap:16px;
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius:18px;
+      overflow:hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    .card .hd{
+      padding:14px 16px;
+      background: rgba(0,0,0,.12);
+      border-bottom:1px solid rgba(255,255,255,.06);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .card .hd .title{
+      font-weight:700;
+      letter-spacing:.2px;
+    }
+    .card .bd{padding:16px}
+    .swatches{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+    .swatch{
+      background: var(--panel2);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:14px;
+      padding:12px;
+    }
+    .swatch .label{
+      color:var(--muted);
+      font-size:12px;
+      margin-bottom:8px;
+    }
+    .chip{
+      height:140px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.15);
+    }
+    .readout{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      margin-top:10px;
+      color:var(--muted);
+      font-size:12px;
+    }
+    .controls{
+      display:grid;
+      gap:12px;
+      margin-top:14px;
+    }
+    .sliderRow{
+      display:grid;
+      grid-template-columns: 70px 1fr 60px;
+      gap:10px;
+      align-items:center;
+      background: rgba(0,0,0,.12);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:12px;
+      padding:10px 12px;
+    }
+    .sliderRow label{font-size:13px; color:var(--text)}
+    input[type="range"]{width:100%}
+    .val{
+      text-align:right;
+      font-variant-numeric: tabular-nums;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .meter{
+      margin-top:14px;
+      background: rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:999px;
+      overflow:hidden;
+      height:14px;
+    }
+    .bar{
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg, var(--bad), var(--warn), var(--good));
+      transition: width .2s ease;
+    }
+    .result{
+      margin-top:10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      color:var(--muted);
+      font-size:14px;
+    }
+    .result strong{color:var(--text)}
+    .msg{
+      margin-top:10px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.14);
+      color:var(--muted);
+      min-height:44px;
+      display:flex;
+      align-items:center;
+    }
+    .actions{
+      display:flex;
+      gap:10px;
+      margin-top:12px;
+      flex-wrap:wrap;
+    }
+    button{
+      cursor:pointer;
+      border:none;
+      border-radius:12px;
+      padding:10px 12px;
+      font-weight:700;
+      color:#081022;
+      background: var(--accent);
+      box-shadow: 0 8px 20px rgba(96,165,250,.25);
+    }
+    button.secondary{
+      background: rgba(255,255,255,.10);
+      color:var(--text);
+      border:1px solid rgba(255,255,255,.12);
+      box-shadow:none;
+    }
+    button:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+    .side{
+      display:grid;
+      gap:16px;
+    }
+    .statGrid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+    .stat{
+      background: rgba(0,0,0,.12);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:14px;
+      padding:12px;
+    }
+    .stat .k{color:var(--muted); font-size:12px}
+    .stat .v{margin-top:6px; font-size:18px; font-weight:800}
+    .hint{
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.45;
+    }
+    .tiny{font-size:12px; color:var(--muted)}
+    @media (max-width: 900px){
+      .grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>Colour Lab</h1>
+        <div class="sub">
+          Mix de doelkleur door Rood, Groen en Blauw te mengen. Haal <strong>minstens 85%</strong> om door te gaan.
+          Geen toets, gewoon experimenteren: probeer → check → bijstellen.
+        </div>
+      </div>
+      <div class="badge" id="badge">
+        <span>Ronde:</span> <strong id="round">1</strong>
+        <span>•</span>
+        <span>Doel:</span> <strong>≥ <span id="thresholdTxt">85</span>%</strong>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <div class="hd">
+          <div class="title">Labtafel</div>
+          <div class="tiny">Duur: ±2–3 min • Trial & error</div>
+        </div>
+        <div class="bd">
+          <div class="swatches">
+            <div class="swatch">
+              <div class="label">Doelkleur</div>
+              <div class="chip" id="targetChip"></div>
+              <div class="readout"><span id="targetRgb">RGB(?, ?, ?)</span><span id="targetHex">#??????</span></div>
+            </div>
+            <div class="swatch">
+              <div class="label">Jouw mix</div>
+              <div class="chip" id="mixChip"></div>
+              <div class="readout"><span id="mixRgb">RGB(0, 0, 0)</span><span id="mixHex">#000000</span></div>
+            </div>
+          </div>
+
+          <div class="controls" aria-label="Kleuren mengen">
+            <div class="sliderRow">
+              <label for="r">Rood</label>
+              <input id="r" type="range" min="0" max="255" value="120" />
+              <div class="val" id="rVal">120</div>
+            </div>
+            <div class="sliderRow">
+              <label for="g">Groen</label>
+              <input id="g" type="range" min="0" max="255" value="120" />
+              <div class="val" id="gVal">120</div>
+            </div>
+            <div class="sliderRow">
+              <label for="b">Blauw</label>
+              <input id="b" type="range" min="0" max="255" value="120" />
+              <div class="val" id="bVal">120</div>
+            </div>
+          </div>
+
+          <div class="meter" aria-label="Match meter"><div class="bar" id="bar"></div></div>
+
+          <div class="result">
+            <div>Match: <strong id="matchPct">0%</strong></div>
+            <div>Pogingen: <strong id="attempts">0</strong></div>
+          </div>
+
+          <div class="msg" id="msg">Mix en klik op <strong style="margin-left:6px;color:var(--text)">Check</strong>.</div>
+
+          <div class="actions">
+            <button id="checkBtn">Check</button>
+            <button class="secondary" id="randomBtn" title="Zet sliders random (sneller experimenteren)">Random mix</button>
+            <button class="secondary" id="resetBtn">Reset ronde</button>
+            <button id="nextBtn" disabled>Volgende ronde</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="side">
+        <section class="card">
+          <div class="hd"><div class="title">Waarom dit “Techniek & Natuur” is</div></div>
+          <div class="bd">
+            <div class="hint">
+              Je doet precies wat je in lab- en techniekopleidingen vaak doet: <strong>hypothese → testen → bijstellen</strong>.
+              Je wordt niet afgerekend op kennis, maar je ervaart dat je met logisch proberen dichterbij komt.
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="hd"><div class="title">Voortgang</div></div>
+          <div class="bd">
+            <div class="statGrid">
+              <div class="stat">
+                <div class="k">Rondes gehaald</div>
+                <div class="v" id="cleared">0</div>
+              </div>
+              <div class="stat">
+                <div class="k">Beste match</div>
+                <div class="v" id="best">0%</div>
+              </div>
+              <div class="stat">
+                <div class="k">Totaal pogingen</div>
+                <div class="v" id="totalAttempts">0</div>
+              </div>
+              <div class="stat">
+                <div class="k">Status</div>
+                <div class="v" id="status">Bezig</div>
+              </div>
+            </div>
+            <div class="tiny" style="margin-top:10px">
+              Tip: mik eerst grof op “warm” of “koud”, daarna finetunen.
+            </div>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // ===== Config =====
+  const THRESHOLD = 85;
+  const TOTAL_ROUNDS = 3;
+
+  // ===== DOM =====
+  const r = document.getElementById('r');
+  const g = document.getElementById('g');
+  const b = document.getElementById('b');
+  const rVal = document.getElementById('rVal');
+  const gVal = document.getElementById('gVal');
+  const bVal = document.getElementById('bVal');
+
+  const targetChip = document.getElementById('targetChip');
+  const mixChip = document.getElementById('mixChip');
+
+  const targetRgb = document.getElementById('targetRgb');
+  const targetHex = document.getElementById('targetHex');
+  const mixRgb = document.getElementById('mixRgb');
+  const mixHex = document.getElementById('mixHex');
+
+  const bar = document.getElementById('bar');
+  const matchPct = document.getElementById('matchPct');
+  const attemptsEl = document.getElementById('attempts');
+  const totalAttemptsEl = document.getElementById('totalAttempts');
+  const msg = document.getElementById('msg');
+
+  const checkBtn = document.getElementById('checkBtn');
+  const randomBtn = document.getElementById('randomBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const nextBtn = document.getElementById('nextBtn');
+
+  const roundEl = document.getElementById('round');
+  const thresholdTxt = document.getElementById('thresholdTxt');
+  const clearedEl = document.getElementById('cleared');
+  const bestEl = document.getElementById('best');
+  const statusEl = document.getElementById('status');
+
+  thresholdTxt.textContent = THRESHOLD;
+
+  // ===== State =====
+  let target = randomColor();
+  let attempts = 0;
+  let totalAttempts = 0;
+  let round = 1;
+  let cleared = 0;
+  let best = 0;
+
+  // ===== Helpers =====
+  function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+  function toHex(n){ return n.toString(16).padStart(2,'0 function'); } // <-- will be replaced below
+})();
+</script>
+
+<script>
+(() => {
+  // Separate IIFE to avoid accidental edits above; keep helpers correct.
+  const THRESHOLD = 85;
+  const TOTAL_ROUNDS = 3;
+
+  const r = document.getElementById('r');
+  const g = document.getElementById('g');
+  const b = document.getElementById('b');
+  const rVal = document.getElementById('rVal');
+  const gVal = document.getElementById('gVal');
+  const bVal = document.getElementById('bVal');
+
+  const targetChip = document.getElementById('targetChip');
+  const mixChip = document.getElementById('mixChip');
+
+  const targetRgb = document.getElementById('targetRgb');
+  const targetHex = document.getElementById('targetHex');
+  const mixRgb = document.getElementById('mixRgb');
+  const mixHex = document.getElementById('mixHex');
+
+  const bar = document.getElementById('bar');
+  const matchPct = document.getElementById('matchPct');
+  const attemptsEl = document.getElementById('attempts');
+  const totalAttemptsEl = document.getElementById('totalAttempts');
+  const msg = document.getElementById('msg');
+
+  const checkBtn = document.getElementById('checkBtn');
+  const randomBtn = document.getElementById('randomBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const nextBtn = document.getElementById('nextBtn');
+
+  const roundEl = document.getElementById('round');
+  const clearedEl = document.getElementById('cleared');
+  const bestEl = document.getElementById('best');
+  const statusEl = document.getElementById('status');
+
+  let target = randomColor();
+  let attempts = 0;
+  let totalAttempts = 0;
+  let round = 1;
+  let cleared = 0;
+  let best = 0;
+
+  function randInt(min, max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+  function randomColor(){
+    // iets meer "mooie" targets dan puur random: vermijd te donkere/grijze kleuren
+    const rr = randInt(30, 235);
+    const gg = randInt(30, 235);
+    const bb = randInt(30, 235);
+    return { r: rr, g: gg, b: bb };
+  }
+
+  function toHex(n){ return n.toString(16).padStart(2,'0'); }
+  function rgbToHex({r,g,b}){ return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase(); }
+  function rgbStr({r,g,b}){ return `RGB(${r}, ${g}, ${b})`; }
+
+  function getMix(){
+    return { r: +r.value, g: +g.value, b: +b.value };
+  }
+
+  function updateSlidersUI(){
+    rVal.textContent = r.value;
+    gVal.textContent = g.value;
+    bVal.textContent = b.value;
+  }
+
+  function updateChips(){
+    const mix = getMix();
+    targetChip.style.background = `rgb(${target.r},${target.g},${target.b})`;
+    mixChip.style.background = `rgb(${mix.r},${mix.g},${mix.b})`;
+    targetRgb.textContent = rgbStr(target);
+    targetHex.textContent = rgbToHex(target);
+    mixRgb.textContent = rgbStr(mix);
+    mixHex.textContent = rgbToHex(mix);
+  }
+
+  function similarityPercent(a, b){
+    // Euclidische afstand in RGB; max afstand = sqrt(3*255^2)
+    const dr = a.r - b.r;
+    const dg = a.g - b.g;
+    const db = a.b - b.b;
+    const dist = Math.sqrt(dr*dr + dg*dg + db*db);
+    const maxDist = Math.sqrt(3 * 255 * 255);
+    const sim = 1 - (dist / maxDist);
+    return Math.round(sim * 100);
+  }
+
+  function setMatchUI(pct){
+    bar.style.width = `${pct}%`;
+    matchPct.textContent = `${pct}%`;
+    if (pct > best) {
+      best = pct;
+      bestEl.textContent = `${best}%`;
+    }
+  }
+
+  function setMessage(text, tone="neutral"){
+    msg.innerHTML = text;
+    msg.style.borderColor = "rgba(255,255,255,.08)";
+    msg.style.background = "rgba(0,0,0,.14)";
+    if (tone === "good"){
+      msg.style.borderColor = "rgba(34,197,94,.35)";
+      msg.style.background = "rgba(34,197,94,.08)";
+    } else if (tone === "warn"){
+      msg.style.borderColor = "rgba(245,158,11,.35)";
+      msg.style.background = "rgba(245,158,11,.08)";
+    } else if (tone === "bad"){
+      msg.style.borderColor = "rgba(239,68,68,.35)";
+      msg.style.background = "rgba(239,68,68,.08)";
+    }
+  }
+
+  function updateHeader(){
+    roundEl.textContent = round;
+    clearedEl.textContent = cleared;
+    attemptsEl.textContent = attempts;
+    totalAttemptsEl.textContent = totalAttempts;
+    statusEl.textContent = (cleared >= TOTAL_ROUNDS) ? "Klaar 🎉" : "Bezig";
+  }
+
+  function lockNextButton(locked){
+    nextBtn.disabled = locked;
+  }
+
+  function resetRound(){
+    attempts = 0;
+    lockNextButton(true);
+    setMatchUI(similarityPercent(getMix(), target));
+    setMessage('Mix en klik op <strong style="color:var(--text)">Check</strong>.', "neutral");
+    updateHeader();
+  }
+
+  function newRound(){
+    target = randomColor();
+    // startmix in het midden (niet te random, minder frustratie)
+    r.value = 120; g.value = 120; b.value = 120;
+    updateSlidersUI();
+    updateChips();
+    resetRound();
+  }
+
+  function finishGame(){
+    lockNextButton(true);
+    checkBtn.disabled = true;
+    randomBtn.disabled = true;
+    resetBtn.disabled = true;
+    setMessage(
+      `Nice. Je hebt <strong style="color:var(--text)">${TOTAL_ROUNDS}</strong> rondes gehaald. 
+       Dit is precies dat lab-gevoel: proberen, meten, bijstellen — en dan lukt het.`,
+      "good"
+    );
+    statusEl.textContent = "Klaar 🎉";
+  }
+
+  // ===== Events =====
+  [r,g,b].forEach(sl => {
+    sl.addEventListener('input', () => {
+      updateSlidersUI();
+      updateChips();
+      const pct = similarityPercent(getMix(), target);
+      setMatchUI(pct);
+    });
+  });
+
+  checkBtn.addEventListener('click', () => {
+    const pct = similarityPercent(getMix(), target);
+    attempts++;
+    totalAttempts++;
+    attemptsEl.textContent = attempts;
+    totalAttemptsEl.textContent = totalAttempts;
+
+    setMatchUI(pct);
+
+    if (pct >= THRESHOLD){
+      lockNextButton(false);
+      setMessage(
+        `✅ <strong style="color:var(--text)">Match gehaald!</strong> (${pct}%). 
+         Lekker bezig — dit is precies hoe experimenteren werkt.`,
+        "good"
+      );
+    } else if (pct >= THRESHOLD - 10){
+      setMessage(
+        `Bijna! (${pct}%). Je zit dichtbij — kleine aanpassingen en je hebt ‘m.`,
+        "warn"
+      );
+    } else {
+      setMessage(
+        `Nog niet (${pct}%). Probeer te finetunen: maak het iets <em>warmer</em> (meer rood/geel) of <em>kouder</em> (meer blauw).`,
+        "bad"
+      );
+    }
+    updateHeader();
+  });
+
+  randomBtn.addEventListener('click', () => {
+    r.value = randInt(0,255);
+    g.value = randInt(0,255);
+    b.value = randInt(0,255);
+    updateSlidersUI();
+    updateChips();
+    const pct = similarityPercent(getMix(), target);
+    setMatchUI(pct);
+    setMessage("Random mix gezet. Check en stuur bij.", "neutral");
+  });
+
+  resetBtn.addEventListener('click', () => {
+    // reset sliders naar startpositie voor deze ronde
+    r.value = 120; g.value = 120; b.value = 120;
+    updateSlidersUI();
+    updateChips();
+    resetRound();
+  });
+
+  nextBtn.addEventListener('click', () => {
+    cleared++;
+    if (cleared >= TOTAL_ROUNDS){
+      finishGame();
+      updateHeader();
+      return;
+    }
+    round++;
+    newRound();
+  });
+
+  // ===== Init =====
+  function randInt(min, max){ return Math.floor(Math.random()*(max-min+1))+min; }
+  function boot(){
+    document.getElementById('thresholdTxt').textContent = THRESHOLD;
+    newRound();
+    // alvast meter initialiseren
+    const pct = similarityPercent(getMix(), target);
+    setMatchUI(pct);
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
